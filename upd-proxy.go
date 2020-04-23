@@ -2,11 +2,15 @@ package proxy
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 )
 
 const (
@@ -99,7 +103,16 @@ func (proxy *UDPProxy) replyLoop(proxyConn *net.UDPConn, clientAddr *net.UDPAddr
 			}
 			return
 		}
-		proxy.Log.Info("Opened %s >>> %s", clientAddr.String(), string(readBuf), "")
+
+		var testDecodeOptions = gopacket.DecodeOptions{
+			SkipDecodeRecovery: true,
+		}
+		pack := gopacket.NewPacket(readBuf, layers.LayerTypeDNS, testDecodeOptions)
+		if pack.ErrorLayer() != nil {
+			fmt.Println("Failed to decode packet:", pack.ErrorLayer().Error())
+		}
+
+		proxy.Log.Info("Opened %s >>> %s", clientAddr.String(), pack.String())
 
 		for i := 0; i != read; {
 			written, err := proxy.listener.WriteToUDP(readBuf[i:read], clientAddr)
