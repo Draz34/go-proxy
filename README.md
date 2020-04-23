@@ -1,4 +1,4 @@
-# tcp-proxy
+# proxy
 
 A small TCP proxy written in Go
 
@@ -8,21 +8,19 @@ This project was intended for debugging text-based protocols. The next version w
 
 **Binaries**
 
-Download [the latest release](https://github.com/jpillora/go-tcp-proxy/releases/latest), or
-
-Install latest release now with `curl https://i.jpillora.com/go-tcp-proxy! | bash`
+Download [the latest release](https://github.com/Draz34/go-proxy/releases/latest)
 
 **Source**
 
 ``` sh
-$ go get -v github.com/jpillora/go-tcp-proxy/cmd/tcp-proxy
+$ go get -v github.com/Draz34/go-proxy/cmd/proxy
 ```
 
 ## Usage
 
 ```
-$ tcp-proxy --help
-Usage of tcp-proxy:
+$ proxy --help
+Usage of proxy:
   -c: output ansi colors
   -h: output hex
   -l="localhost:9999": local address
@@ -40,17 +38,17 @@ Usage of tcp-proxy:
 
 ### Simple Example
 
-Since HTTP runs over TCP, we can also use `tcp-proxy` as a primitive HTTP proxy:
+Since HTTP runs over TCP, we can also use `proxy` as a primitive HTTP proxy:
 
 ```
-$ tcp-proxy -r echo.jpillora.com:80
-Proxying from localhost:9999 to echo.jpillora.com:80
+$ proxy -r echo.draz34.com:80
+TCPProxying from localhost:9999 to echo.draz34.com:80
 ```
 
 Then test with `curl`:
 
 ```
-$ curl -H 'Host: echo.jpillora.com' localhost:9999/foo
+$ curl -H 'Host: echo.draz34.com' localhost:9999/foo
 {
   "method": "GET",
   "url": "/foo"
@@ -61,20 +59,20 @@ $ curl -H 'Host: echo.jpillora.com' localhost:9999/foo
 ### Match Example
 
 ```
-$ tcp-proxy -r echo.jpillora.com:80 -match 'Host: (.+)'
-Proxying from localhost:9999 to echo.jpillora.com:80
+$ proxy -r echo.draz34.com:80 -match 'Host: (.+)'
+TCPProxying from localhost:9999 to echo.draz34.com:80
 Matching Host: (.+)
 
 #run curl again...
 
-Connection #001 Match #1: Host: echo.jpillora.com
+Connection #001 Match #1: Host: echo.draz34.com
 ```
 
 ### Replace Example
 
 ```
-$ tcp-proxy -r echo.jpillora.com:80 -replace '"ip": "([^"]+)"~"ip": "REDACTED"'
-Proxying from localhost:9999 to echo.jpillora.com:80
+$ proxy -r echo.draz34.com:80 -replace '"ip": "([^"]+)"~"ip": "REDACTED"'
+TCPProxying from localhost:9999 to echo.draz34.com:80
 Replacing "ip": "([^"]+)" with "ip": "REDACTED"
 ```
 
@@ -95,8 +93,6 @@ Replacing "ip": "([^"]+)" with "ip": "REDACTED"
 * Implement [SOCKS v5](https://www.ietf.org/rfc/rfc1928.txt) to allow for user-decided remote addresses
 
 #### MIT License
-
-Copyright © 2014 Jaime Pillora <dev@jpillora.com>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

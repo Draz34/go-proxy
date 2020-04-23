@@ -6,8 +6,8 @@ import (
 	"net"
 )
 
-// Proxy - Manages a Proxy connection, piping data between local and remote.
-type Proxy struct {
+// TCPProxy - Manages a TCPProxy connection, piping data between local and remote.
+type TCPProxy struct {
 	sentBytes     uint64
 	receivedBytes uint64
 	laddr, raddr  *net.TCPAddr
@@ -26,10 +26,10 @@ type Proxy struct {
 	OutputHex bool
 }
 
-// New - Create a new Proxy instance. Takes over local connection passed in,
+// New - Create a new TCPProxy instance. Takes over local connection passed in,
 // and closes it when finished.
-func New(lconn *net.TCPConn, laddr, raddr *net.TCPAddr) *Proxy {
-	return &Proxy{
+func New(lconn *net.TCPConn, laddr, raddr *net.TCPAddr) *TCPProxy {
+	return &TCPProxy{
 		lconn:  lconn,
 		laddr:  laddr,
 		raddr:  raddr,
@@ -39,10 +39,10 @@ func New(lconn *net.TCPConn, laddr, raddr *net.TCPAddr) *Proxy {
 	}
 }
 
-// NewTLSUnwrapped - Create a new Proxy instance with a remote TLS server for
+// NewTLSUnwrapped - Create a new TCPProxy instance with a remote TLS server for
 // which we want to unwrap the TLS to be able to connect without encryption
 // locally
-func NewTLSUnwrapped(lconn *net.TCPConn, laddr, raddr *net.TCPAddr, addr string) *Proxy {
+func NewTLSUnwrapped(lconn *net.TCPConn, laddr, raddr *net.TCPAddr, addr string) *TCPProxy {
 	p := New(lconn, laddr, raddr)
 	p.tlsUnwrapp = true
 	p.tlsAddress = addr
@@ -54,7 +54,7 @@ type setNoDelayer interface {
 }
 
 // Start - open connection to remote and start proxying data.
-func (p *Proxy) Start() {
+func (p *TCPProxy) Start() {
 	defer p.lconn.Close()
 
 	var err error
@@ -92,7 +92,7 @@ func (p *Proxy) Start() {
 	p.Log.Info("Closed (%d bytes sent, %d bytes recieved)", p.sentBytes, p.receivedBytes)
 }
 
-func (p *Proxy) err(s string, err error) {
+func (p *TCPProxy) err(s string, err error) {
 	if p.erred {
 		return
 	}
@@ -103,7 +103,7 @@ func (p *Proxy) err(s string, err error) {
 	p.erred = true
 }
 
-func (p *Proxy) pipe(src, dst io.ReadWriter) {
+func (p *TCPProxy) pipe(src, dst io.ReadWriter) {
 	islocal := src == p.lconn
 
 	var dataDirection string

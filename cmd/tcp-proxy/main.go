@@ -36,7 +36,7 @@ func main() {
 		Color:   *colors,
 	}
 
-	logger.Info("Proxying from %v to %v", *localAddr, *remoteAddr)
+	logger.Info("TCPProxying from %v to %v", *localAddr, *remoteAddr)
 
 	laddr, err := net.ResolveTCPAddr("tcp", *localAddr)
 	if err != nil {
@@ -69,7 +69,7 @@ func main() {
 		}
 		connid++
 
-		var p *proxy.Proxy
+		var p *proxy.TCPProxy
 		if *unwrapTLS {
 			logger.Info("Unwrapping TLS")
 			p = proxy.NewTLSUnwrapped(conn, laddr, raddr, *remoteAddr)

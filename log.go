@@ -6,7 +6,7 @@ import (
 	"github.com/mgutz/ansi"
 )
 
-// Logger - Interface to pass into Proxy for it to log messages
+// Logger - Interface to pass into TCPProxy for it to log messages
 type Logger interface {
 	Trace(f string, args ...interface{})
 	Debug(f string, args ...interface{})
