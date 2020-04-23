@@ -96,8 +96,37 @@ func main() {
 		}
 	case "udp":
 		logger.Info("UDP Proxying from %v to %v", *localAddr, *remoteAddr)
+
+		laddr, err := net.ResolveUDPAddr("udp", *localAddr)
+		if err != nil {
+			logger.Warn("Failed to resolve local address: %s", err)
+			os.Exit(1)
+		}
+		raddr, err := net.ResolveUDPAddr("udp", *remoteAddr)
+		if err != nil {
+			logger.Warn("Failed to resolve remote address: %s", err)
+			os.Exit(1)
+		}
+
+		var p *proxy.UDPProxy
+
+		p, err = proxy.NewUDPProxy(laddr, raddr, opsss)
+		if err != nil {
+			logger.Warn("Failed to start UDP proxy : %s", err)
+		}
+		p.Log = proxy.ColorLogger{
+			Verbose:     *verbose,
+			VeryVerbose: *veryverbose,
+			Prefix:      fmt.Sprintf("Connection #%03d ", connid),
+			Color:       *colors,
+		}
+		p.Run()
 	}
 
+}
+
+func opsss(proxy *proxy.UDPProxy) {
+	proxy.Log.Warn("func oppss")
 }
 
 func createMatcher(match string) func([]byte) {

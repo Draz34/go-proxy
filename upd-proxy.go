@@ -45,7 +45,7 @@ type connTrackMap map[connTrackKey]*net.UDPConn
 // interface to handle UDP traffic forwarding between the frontend and backend
 // addresses.
 type UDPProxy struct {
-	Logger         logger
+	Log            Logger
 	listener       *net.UDPConn
 	frontendAddr   *net.UDPAddr
 	backendAddr    *net.UDPAddr
@@ -65,7 +65,7 @@ func NewUDPProxy(frontendAddr, backendAddr *net.UDPAddr, ops ...func(*UDPProxy))
 		frontendAddr:   listener.LocalAddr().(*net.UDPAddr),
 		backendAddr:    backendAddr,
 		connTrackTable: make(connTrackMap),
-		Logger:         &noopLogger{},
+		Log:            &NullLogger{},
 	}
 
 	for _, op := range ops {
@@ -99,6 +99,8 @@ func (proxy *UDPProxy) replyLoop(proxyConn *net.UDPConn, clientAddr *net.UDPAddr
 			}
 			return
 		}
+		proxy.Log.Info("Opened %s >>> %s", clientAddr.String(), string(readBuf), "")
+
 		for i := 0; i != read; {
 			written, err := proxy.listener.WriteToUDP(readBuf[i:read], clientAddr)
 			if err != nil {
@@ -119,7 +121,7 @@ func (proxy *UDPProxy) Run() {
 			// ECONNREFUSED like Read do (see comment in
 			// UDPProxy.replyLoop)
 			if !isClosedError(err) {
-				proxy.Logger.Printf("Stopping proxy on udp/%v for udp/%v (%s)", proxy.frontendAddr, proxy.backendAddr, err)
+				proxy.Log.Info("Stopping proxy on udp/%v for udp/%v (%s)", proxy.frontendAddr, proxy.backendAddr, err)
 			}
 			break
 		}
@@ -130,7 +132,7 @@ func (proxy *UDPProxy) Run() {
 		if !hit {
 			proxyConn, err = net.DialUDP("udp", nil, proxy.backendAddr)
 			if err != nil {
-				proxy.Logger.Printf("Can't proxy a datagram to udp/%s: %s\n", proxy.backendAddr, err)
+				proxy.Log.Warn("Can't proxy a datagram to udp/%s: %s\n", proxy.backendAddr, err)
 				proxy.connTrackLock.Unlock()
 				continue
 			}
@@ -141,7 +143,7 @@ func (proxy *UDPProxy) Run() {
 		for i := 0; i != read; {
 			written, err := proxyConn.Write(readBuf[i:read])
 			if err != nil {
-				proxy.Logger.Printf("Can't proxy a datagram to udp/%s: %s\n", proxy.backendAddr, err)
+				proxy.Log.Warn("Can't proxy a datagram to udp/%s: %s\n", proxy.backendAddr, err)
 				break
 			}
 			i += written
