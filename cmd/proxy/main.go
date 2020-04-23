@@ -18,6 +18,7 @@ var (
 
 	localAddr   = flag.String("l", ":9999", "local address")
 	remoteAddr  = flag.String("r", "localhost:80", "remote address")
+	protocol    = flag.String("p", "tcp", "protocol tcp OR udp")
 	verbose     = flag.Bool("v", false, "display server actions")
 	veryverbose = flag.Bool("vv", false, "display server actions and all tcp data")
 	nagles      = flag.Bool("n", false, "disable nagles algorithm")
@@ -36,61 +37,67 @@ func main() {
 		Color:   *colors,
 	}
 
-	logger.Info("TCPProxying from %v to %v", *localAddr, *remoteAddr)
+	switch *protocol {
+	case "tcp":
+		logger.Info("TCP Proxying from %v to %v", *localAddr, *remoteAddr)
 
-	laddr, err := net.ResolveTCPAddr("tcp", *localAddr)
-	if err != nil {
-		logger.Warn("Failed to resolve local address: %s", err)
-		os.Exit(1)
-	}
-	raddr, err := net.ResolveTCPAddr("tcp", *remoteAddr)
-	if err != nil {
-		logger.Warn("Failed to resolve remote address: %s", err)
-		os.Exit(1)
-	}
-	listener, err := net.ListenTCP("tcp", laddr)
-	if err != nil {
-		logger.Warn("Failed to open local port to listen: %s", err)
-		os.Exit(1)
-	}
-
-	matcher := createMatcher(*match)
-	replacer := createReplacer(*replace)
-
-	if *veryverbose {
-		*verbose = true
-	}
-
-	for {
-		conn, err := listener.AcceptTCP()
+		laddr, err := net.ResolveTCPAddr("tcp", *localAddr)
 		if err != nil {
-			logger.Warn("Failed to accept connection '%s'", err)
-			continue
+			logger.Warn("Failed to resolve local address: %s", err)
+			os.Exit(1)
 		}
-		connid++
-
-		var p *proxy.TCPProxy
-		if *unwrapTLS {
-			logger.Info("Unwrapping TLS")
-			p = proxy.NewTLSUnwrapped(conn, laddr, raddr, *remoteAddr)
-		} else {
-			p = proxy.New(conn, laddr, raddr)
+		raddr, err := net.ResolveTCPAddr("tcp", *remoteAddr)
+		if err != nil {
+			logger.Warn("Failed to resolve remote address: %s", err)
+			os.Exit(1)
 		}
-
-		p.Matcher = matcher
-		p.Replacer = replacer
-
-		p.Nagles = *nagles
-		p.OutputHex = *hex
-		p.Log = proxy.ColorLogger{
-			Verbose:     *verbose,
-			VeryVerbose: *veryverbose,
-			Prefix:      fmt.Sprintf("Connection #%03d ", connid),
-			Color:       *colors,
+		listener, err := net.ListenTCP("tcp", laddr)
+		if err != nil {
+			logger.Warn("Failed to open local port to listen: %s", err)
+			os.Exit(1)
 		}
 
-		go p.Start()
+		matcher := createMatcher(*match)
+		replacer := createReplacer(*replace)
+
+		if *veryverbose {
+			*verbose = true
+		}
+
+		for {
+			conn, err := listener.AcceptTCP()
+			if err != nil {
+				logger.Warn("Failed to accept connection '%s'", err)
+				continue
+			}
+			connid++
+
+			var p *proxy.TCPProxy
+			if *unwrapTLS {
+				logger.Info("Unwrapping TLS")
+				p = proxy.NewTLSUnwrapped(conn, laddr, raddr, *remoteAddr)
+			} else {
+				p = proxy.New(conn, laddr, raddr)
+			}
+
+			p.Matcher = matcher
+			p.Replacer = replacer
+
+			p.Nagles = *nagles
+			p.OutputHex = *hex
+			p.Log = proxy.ColorLogger{
+				Verbose:     *verbose,
+				VeryVerbose: *veryverbose,
+				Prefix:      fmt.Sprintf("Connection #%03d ", connid),
+				Color:       *colors,
+			}
+
+			go p.Start()
+		}
+	case "udp":
+		logger.Info("UDP Proxying from %v to %v", *localAddr, *remoteAddr)
 	}
+
 }
 
 func createMatcher(match string) func([]byte) {
