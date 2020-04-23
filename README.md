@@ -45,6 +45,11 @@ $ proxy -r echo.draz34.com:80
 TCPProxying from localhost:9999 to echo.draz34.com:80
 ```
 
+```
+go run cmd/proxy/main.go -l 192.168.0.50:53 -r 192.168.0.254:53 -p udp
+UDP PRoxying from 192.168.0.50:53 to 192.168.0.254:53
+```
+
 Then test with `curl`:
 
 ```
