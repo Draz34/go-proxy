@@ -9,8 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"golang.org/x/net/dns/dnsmessage"
 )
 
 const (
@@ -79,6 +78,77 @@ func NewUDPProxy(frontendAddr, backendAddr *net.UDPAddr, ops ...func(*UDPProxy))
 	return proxy, nil
 }
 
+func (proxy *UDPProxy) answerBuffer(buffer []byte) []byte {
+
+	var m dnsmessage.Message
+	err := m.Unpack(buffer)
+
+	if err != nil {
+		fmt.Println("Failed to unpack:", err)
+	}
+	/*
+		for key, question := range m.Questions {
+			if question.Name.String() == "viptv.accesss.me." {
+				m.Questions[key].Name, err = dnsmessage.NewName("server6.batirama.com.")
+				if err != nil {
+					fmt.Println("Failed to new name:", err)
+				}
+			}
+		}
+	*/
+	//proxy.Log.Info("Answer >>> %s", m.GoString())
+
+	buffer, err = m.Pack()
+
+	if err != nil {
+		fmt.Println("Failed to pack:", err)
+	}
+
+	return buffer
+}
+
+func (proxy *UDPProxy) responseBuffer(buffer []byte) []byte {
+	var m dnsmessage.Message
+	err := m.Unpack(buffer)
+
+	if err != nil {
+		fmt.Println("Failed to unpack:", err)
+	}
+	/*
+		for key, question := range m.Questions {
+			if question.Name.String() == "server6.batirama.com." {
+				m.Questions[key].Name, err = dnsmessage.NewName("viptv.accesss.me.")
+				if err != nil {
+					fmt.Println("Failed to new name:", err)
+				}
+			}
+		}
+	*/
+	for key, response := range m.Answers {
+		if response.Header.Name.String() == "viptv.accesss.me." {
+
+			var ARes dnsmessage.AResource
+			ARes.A = [4]byte{54, 38, 47, 240}
+
+			m.Answers[key].Body = &ARes
+
+			if err != nil {
+				fmt.Println("Failed to new name:", err)
+			}
+		}
+	}
+
+	proxy.Log.Info("Response >>> %s", m.GoString())
+
+	buffer, err = m.Pack()
+
+	if err != nil {
+		fmt.Println("Failed to pack:", err)
+	}
+
+	return buffer
+}
+
 func (proxy *UDPProxy) replyLoop(proxyConn *net.UDPConn, clientAddr *net.UDPAddr, clientKey *connTrackKey) {
 	defer func() {
 		proxy.connTrackLock.Lock()
@@ -104,15 +174,7 @@ func (proxy *UDPProxy) replyLoop(proxyConn *net.UDPConn, clientAddr *net.UDPAddr
 			return
 		}
 
-		var testDecodeOptions = gopacket.DecodeOptions{
-			SkipDecodeRecovery: true,
-		}
-		pack := gopacket.NewPacket(readBuf, layers.LayerTypeDNS, testDecodeOptions)
-		if pack.ErrorLayer() != nil {
-			fmt.Println("Failed to decode packet:", pack.ErrorLayer().Error())
-		}
-
-		proxy.Log.Info("Opened %s >>> %s", clientAddr.String(), pack.String())
+		readBuf = proxy.responseBuffer(readBuf)
 
 		for i := 0; i != read; {
 			written, err := proxy.listener.WriteToUDP(readBuf[i:read], clientAddr)
@@ -138,6 +200,8 @@ func (proxy *UDPProxy) Run() {
 			}
 			break
 		}
+
+		readBuf = proxy.answerBuffer(readBuf)
 
 		fromKey := newConnTrackKey(from)
 		proxy.connTrackLock.Lock()
