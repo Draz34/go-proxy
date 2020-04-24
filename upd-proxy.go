@@ -86,16 +86,19 @@ func (proxy *UDPProxy) answerBuffer(buffer []byte) []byte {
 	if err != nil {
 		fmt.Println("Failed to unpack:", err)
 	}
-	/*
-		for key, question := range m.Questions {
+
+	for key, _ := range m.Questions {
+		/*
 			if question.Name.String() == "viptv.accesss.me." {
 				m.Questions[key].Name, err = dnsmessage.NewName("server6.batirama.com.")
 				if err != nil {
 					fmt.Println("Failed to new name:", err)
 				}
 			}
-		}
-	*/
+		*/
+		proxy.Log.Info("Answer >>> %s", m.Questions[key].GoString())
+	}
+
 	//proxy.Log.Info("Answer >>> %s", m.GoString())
 
 	buffer, err = m.Pack()
@@ -125,10 +128,11 @@ func (proxy *UDPProxy) responseBuffer(buffer []byte) []byte {
 		}
 	*/
 	for key, response := range m.Answers {
-		if response.Header.Name.String() == "viptv.accesss.me." {
-
+		//if response.Header.Name.String() == "cms.accesss.me." || response.Header.Name.String() == "viptv.accesss.me." || response.Header.Name.String() == "smartapi.iptvsmarters.com." {
+		if response.Header.Name.String() == "cms.accesss.me." || response.Header.Name.String() == "viptv.accesss.me." {
 			var ARes dnsmessage.AResource
 			ARes.A = [4]byte{54, 38, 47, 240}
+			//ARes.A = [4]byte{192, 168, 0, 50}
 
 			m.Answers[key].Body = &ARes
 
@@ -136,9 +140,11 @@ func (proxy *UDPProxy) responseBuffer(buffer []byte) []byte {
 				fmt.Println("Failed to new name:", err)
 			}
 		}
+
+		proxy.Log.Info("Response >>> %s", m.Answers[key].Body.GoString())
 	}
 
-	proxy.Log.Info("Response >>> %s", m.GoString())
+	//	proxy.Log.Info("Response >>> %s", m.GoString())
 
 	buffer, err = m.Pack()
 
@@ -225,6 +231,8 @@ func (proxy *UDPProxy) Run() {
 			}
 			i += written
 		}
+
+		readBuf = make([]byte, UDPBufSize)
 	}
 }
 
